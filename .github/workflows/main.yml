@@ -1,0 +1,132 @@
+name: Deploy Uni-Com
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Terraform Action to Perform'
+        type: choice
+        options:
+        - Terraform_apply
+        - Terraform_destroy
+
+jobs:
+  deploy:
+    name: "Terraform_apply"
+    if: ${{ github.event.inputs.action == 'Terraform_apply' }}
+    runs-on: ubuntu-latest
+
+    env:
+      BUCKET_NAME: ${{ vars.TF_STATE_BUCKET }}
+      REGION_NAME: ${{ vars.AWS_REGION }}
+      EMBEDDINGS_API_KEY: ${{ secrets.EMBEDDINGS_API_KEY }}
+
+    steps:
+      # 1. Check out the repository
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      # 2. Configure AWS credentials
+      # TODO: May need to aws configure for default profile
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}  # or whatever region you use
+
+      # 3. Install Terraform
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.1.9  # Adjust as needed
+
+      # 4 Replace the bucket name and region in backend.tf
+      - name: Replace bucket name and region in backend.tf
+        working-directory: infrastructure
+        run: |
+          echo "Bucket Name: $BUCKET_NAME"
+          echo "Region Name: $REGION_NAME"
+          sed -i "s/bucket\s*=\s*\".*\"/bucket = \"$BUCKET_NAME\"/" backend.tf
+          sed -i "s/region\s*=\s*\".*\"/region = \"$REGION_NAME\"/" backend.tf
+
+      # 5. Terraform Init & Apply (to create/update the infrastructure)
+      - name: Terraform Init
+        working-directory: infrastructure
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: infrastructure
+        run: terraform plan -var="app_region=$REGION_NAME" -var="embeddings_api_key=$EMBEDDINGS_API_KEY"
+
+      - name: Terraform Apply
+        working-directory: infrastructure
+        run: terraform apply -auto-approve -var="app_region=$REGION_NAME" -var="embeddings_api_key=$EMBEDDINGS_API_KEY"
+
+      # 6. Build the website front-end
+      - name: Build front-end
+        working-directory: Next-app/unicom-webapp
+        run: |
+          npm install
+          npm run build
+
+      # 7. Terraform Apply again (to upload site files to S3)
+      - name: Terraform Init (again)
+        working-directory: infrastructure
+        run: terraform init
+
+      - name: Terraform Apply (again)
+        working-directory: infrastructure
+        run: terraform apply -auto-approve -var="app_region=$REGION_NAME" -var="embeddings_api_key=$EMBEDDINGS_API_KEY"
+
+  tear-down:
+    name: "Terraform_destroy"
+    if: ${{ github.event.inputs.action == 'Terraform_destroy' }}
+    runs-on: ubuntu-latest
+    
+    env:
+      BUCKET_NAME: ${{ vars.TF_STATE_BUCKET }}
+      REGION_NAME: ${{ vars.AWS_REGION }}
+      EMBEDDINGS_API_KEY: ${{ secrets.EMBEDDINGS_API_KEY }}
+
+    steps:
+      # 1. Check out the repository
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      # 2. Configure AWS credentials
+      # TODO: May need to aws configure for default profile
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}  # or whatever region you use
+
+      # 3. Install Terraform
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.1.9  # Adjust as needed
+
+      # 4 Replace the bucket name and region in backend.tf
+      - name: Replace bucket name and region in backend.tf
+        working-directory: infrastructure
+        run: |
+          echo "Bucket Name: $BUCKET_NAME"
+          echo "Region Name: $REGION_NAME"
+          sed -i "s/bucket\s*=\s*\".*\"/bucket = \"$BUCKET_NAME\"/" backend.tf
+          sed -i "s/region\s*=\s*\".*\"/region = \"$REGION_NAME\"/" backend.tf
+
+      # 5. Terraform Init & Apply (to create/update the infrastructure)
+      - name: Terraform Init
+        working-directory: infrastructure
+        run: terraform init
+
+      - name: Terraform Plan Destroy
+        working-directory: infrastructure
+        run: terraform plan -destroy -var="app_region=$REGION_NAME" -var="embeddings_api_key=$EMBEDDINGS_API_KEY"
+
+      - name: Terraform Destroy
+        working-directory: infrastructure
+        run: terraform destroy -auto-approve -var="app_region=$REGION_NAME" -var="embeddings_api_key=$EMBEDDINGS_API_KEY"
