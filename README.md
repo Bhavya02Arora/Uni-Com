@@ -111,7 +111,7 @@ To destroy all provisioned infrastructure, follow the steps listed below
 
 ## Using the Application
 
-We've created a short demonstration video on how to use the application which can be found [here](https://drive.google.com/file/d/1-51bH-6eQ8om26i9CdR_mHPr4g4JBCPb/view?usp=sharing).
+We've created a short demonstration video on how to use the application which can be found [here](https://vimeo.com/1088317957/1fbc96fc4a?share=copy).
 
 ### Note: The homepage URL is same as the CloudFront URL which is displayed in the terraform output as `cloudfront_distribution_domain_name`.
 
