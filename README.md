@@ -1,6 +1,10 @@
 # Uni-Com: User’s Guide
 
-**Purpose:** This standalone guide walks developers or testers through deploying, configuring, and using the Uni-Com application.
+
+**Purpose:** This standalone guide walks developers through deploying, configuring, and using the Uni-Com application.
+
+## Architecture
+![image](https://github.com/user-attachments/assets/ffc98793-2573-4340-b269-567b5904167a)
 
 <!-- ---
 
@@ -19,6 +23,7 @@
    2. [Key Features & Scenarios](#52-key-features)
 6. [Troubleshooting](#6-troubleshooting)
 7. [Appendix](#7-appendix) -->
+
 
 
 ## Initial Setup
